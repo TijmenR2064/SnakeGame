@@ -3,8 +3,11 @@ import time
 import random
 import sqlite3
 import os
+from SnakeShape import draw_snake_head
+from HighScore import checkHighScore, addHighScore, getHighScores
 
 pygame.init()
+pygame.mixer.init()
 
 white = (255, 255, 255)
 yellow = (255,255,102)
@@ -30,76 +33,19 @@ font_style = pygame.font.SysFont("bahnschrift", 50)
 font_highscore = pygame.font.SysFont("bahnschrift", 35)
 score_font = pygame.font.SysFont("comicsansms", 35)
 
-def create_tables(conn):
-    print("table made")
-    db = conn
-    z = db.cursor()
-    z.execute(""" CREATE TABLE HIGHSCORE (
-        Name VARCHAR(255) NOT NULL,
-        Score INT NOT NULL
-    ); """)
+s = 'sound'
 
-    db.commit()
-    db.close()
+game_over_sound = pygame.mixer.Sound(os.path.join(s, 'gameover.mp3'))
+
+eat_sound = pygame.mixer.Sound(os.path.join(s, 'food.mp3'))
+
+music = pygame.mixer.music.load(os.path.join(s, 'music.mp3'))
+
 
 def Score(score):
     value = score_font.render("Your Score: " + str(score), True, yellow)
     dis.blit(value, [0, 0])
 
-def checkHighScore(score):
-
-    conn = sqlite3.connect("Database.db")
-    cursor = conn.cursor() 
-    cursor.execute('''SELECT Score FROM HIGHSCORE ORDER BY Score DESC LIMIT 5''')
-    highscores = cursor.fetchall()
-
-    if not highscores:
-        # If there's no high score yet, consider it a new high score
-        return True
-    for highscore in highscores:
-        # print(i[0])
-        if score > highscore[0]:
-            return True
-    
-    return False
-        
-def getHighScores():
-    conn = sqlite3.connect("Database.db")
-    cursor = conn.cursor() 
-    highscores=cursor.execute('''SELECT Score
-                      FROM HIGHSCORE 
-                      ORDER BY Score DESC 
-                      LIMIT 5''') 
-    return highscores
-        
-    
-
-
-def addHighScore(score, name):
-    try:
-        if not os.path.isfile("./Database.db"):
-            database = "Database.db"
-            conn = sqlite3.connect(database)
-            create_tables(conn)
-        
-        conn = sqlite3.connect("Database.db")
-        cursor = conn.cursor()
-
-        with conn:
-            cursor.execute(" INSERT INTO HIGHSCORE VALUES(:Name, :Score)",
-                           {
-                               "Name": name,
-                               "Score" : score
-                           })
-
-        # data=cursor.execute('''SELECT * FROM HIGHSCORE''') 
-        # for row in data: 
-        #     print(row) 
-        
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as e:
-        print(e)
 
 def getPlayerName(current_score):
     player_name = ""
@@ -171,57 +117,13 @@ def getPlayerName(current_score):
     return player_name
 
 
-def draw_snake_head(x, y, size, direction):
-    # Draw the head (rounded rectangle for a more natural snake head shape)
-    pygame.draw.rect(dis, green, [x, y, size, size], border_radius=size // 4)
 
-    # Draw the eyes (larger and more centered)
-    eye_size = size // 3
-    eye_offset_x = size // 5
-    eye_offset_y = size // 4
-
-    # Position the eyes based on direction
-    if direction == "UP" or direction == "DOWN":
-        pygame.draw.circle(dis, white, (x + eye_offset_x, y + eye_offset_y), eye_size)
-        pygame.draw.circle(dis, white, (x + size - eye_offset_x, y + eye_offset_y), eye_size)
-    elif direction == "LEFT":
-        pygame.draw.circle(dis, white, (x + eye_offset_y, y + eye_offset_x), eye_size)
-        pygame.draw.circle(dis, white, (x + eye_offset_y, y + size - eye_offset_x), eye_size)
-    elif direction == "RIGHT":
-        pygame.draw.circle(dis, white, (x + size - eye_offset_y, y + eye_offset_x), eye_size)
-        pygame.draw.circle(dis, white, (x + size - eye_offset_y, y + size - eye_offset_x), eye_size)
-
-    # Draw pupils
-    pupil_size = eye_size // 2
-    if direction == "UP" or direction == "DOWN":
-        pygame.draw.circle(dis, black, (x + eye_offset_x, y + eye_offset_y), pupil_size)
-        pygame.draw.circle(dis, black, (x + size - eye_offset_x, y + eye_offset_y), pupil_size)
-    elif direction == "LEFT":
-        pygame.draw.circle(dis, black, (x + eye_offset_y, y + eye_offset_x), pupil_size)
-        pygame.draw.circle(dis, black, (x + eye_offset_y, y + size - eye_offset_x), pupil_size)
-    elif direction == "RIGHT":
-        pygame.draw.circle(dis, black, (x + size - eye_offset_y, y + eye_offset_x), pupil_size)
-        pygame.draw.circle(dis, black, (x + size - eye_offset_y, y + size - eye_offset_x), pupil_size)
-
-    # Draw the tongue based on direction
-    tongue_length = size // 1.5
-    tongue_width = 3
-    tongue_offset = size // 2
-
-    if direction == "UP":
-        pygame.draw.line(dis, red, (x + tongue_offset, y), (x + tongue_offset, y - tongue_length), tongue_width)
-    elif direction == "DOWN":
-        pygame.draw.line(dis, red, (x + tongue_offset, y + size), (x + tongue_offset, y + size + tongue_length), tongue_width)
-    elif direction == "LEFT":
-        pygame.draw.line(dis, red, (x, y + tongue_offset), (x - tongue_length, y + tongue_offset), tongue_width)
-    elif direction == "RIGHT":
-        pygame.draw.line(dis, red, (x + size, y + tongue_offset), (x + size + tongue_length, y + tongue_offset), tongue_width)
     
 
 def our_snake(snake_block, snake_list, direction):
     head = snake_list[-1]
 
-    draw_snake_head(head[0], head[1], snake_block, direction)
+    draw_snake_head(dis, head[0], head[1], snake_block, direction)
 
     for x in snake_list[:-1]:
         pygame.draw.rect( dis, green, [x[0], x[1], snake_block, snake_block])
@@ -257,8 +159,11 @@ def gameLoop():
 
     direction = "RIGHT"  # Initial direction
 
+    pygame.mixer.music.play(-1)
+
 
     while not game_over:
+        sound_played = False 
 
         while game_close == True and high_Score == True:
             dis.fill(blue)
@@ -279,6 +184,10 @@ def gameLoop():
             # print("High Score")
 
         while game_close == True and high_Score == False:
+            if not sound_played:
+                pygame.mixer.Sound.play(game_over_sound)
+                sound_played = True
+            
             dis.fill(blue)
             message("Press Q-Quit or C-Play Again", red)
             Score(Length_of_snake -1)
@@ -347,6 +256,7 @@ def gameLoop():
             foodx = round(random.randrange(0, dis_width - snake_block) / snake_block) * snake_block
             foody = round(random.randrange(0, dis_height - snake_block) / snake_block) * snake_block
             Length_of_snake += 1
+            pygame.mixer.Sound.play(eat_sound)
         # elif x1 == speedUpX and y1 == speedUpY:
 
             
