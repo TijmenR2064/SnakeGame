@@ -27,7 +27,8 @@ clock = pygame.time.Clock()
 snake_block = 25
 snake_speed = 9
 
-snake_head_img = pygame.image.load("snake_head1.jpg")
+snake_List = []
+Length_of_snake = 1
 
 font_style = pygame.font.SysFont("bahnschrift", 50)
 font_highscore = pygame.font.SysFont("bahnschrift", 35)
@@ -41,6 +42,42 @@ eat_sound = pygame.mixer.Sound(os.path.join(s, 'food.mp3'))
 
 music = pygame.mixer.music.load(os.path.join(s, 'music.mp3'))
 
+MENU = "menu"
+GAME = "game"
+GAME_OVER = "game_over"
+QUIT = "quit"
+state = MENU
+
+def draw_button(text, x, y, w, h, inactive_color, active_color):
+    """
+    Draws a button on the screen and detects clicks.
+    
+    :param text: Text to display on the button
+    :param x: X coordinate of the button
+    :param y: Y coordinate of the button
+    :param w: Width of the button
+    :param h: Height of the button
+    :param inactive_color: Button color when not hovered
+    :param active_color: Button color when hovered
+    :param action: Action to perform on click (can be a function or state change)
+    """
+    mouse = pygame.mouse.get_pos()  # Get current mouse position
+    click = pygame.mouse.get_pressed()  # Get mouse clicks (returns tuple of (left, middle, right))
+
+    # Check if mouse is over the button (hover effect)
+    if x + w > mouse[0] > x and y + h > mouse[1] > y:
+        pygame.draw.rect(dis, active_color, (x, y, w, h))  # Hover color
+        if click[0] == 1:  # Check if left mouse button is clicked
+            return True  # Return the action/state if clicked
+    else:
+        pygame.draw.rect(dis, inactive_color, (x, y, w, h))  # Default color
+
+    # Button text
+    small_text = pygame.font.SysFont("bahnschrift", 35)
+    text_surf = small_text.render(text, True, white)
+    dis.blit(text_surf, (x + (w / 2 - text_surf.get_width() / 2), y + (h / 2 - text_surf.get_height() / 2)))
+
+    return None
 
 def Score(score):
     value = score_font.render("Your Score: " + str(score), True, yellow)
@@ -137,19 +174,160 @@ def message_Highscore(msg,color):
     mesg = font_highscore.render(msg, True, color)
     dis.blit(mesg, [dis_width/3.5, dis_height/3])
 
+def menuLoop():
+    menu = True
+    font = pygame.font.SysFont("bahnschrift", 55)
+
+    while menu == True:
+        dis.fill(blue)
+
+        title_text = font.render("Snake Game", True, white)
+        title_width = title_text.get_width()
+        title_height = title_text.get_height()
+
+        # Calculate the position to center the title on the screen
+        title_x = (dis_width // 2) - (title_width // 2)
+        title_y = (dis_height // 3) - (title_height // 2)
+
+        # Draw the title in the center
+        dis.blit(title_text, (title_x, title_y))
+        # dis.blit(title, (dis_width // 3, dis_height // 3 - 50))
+
+         # Button dimensions
+        button_width = 200
+        button_height = 50
+
+        # Calculate the position for the buttons to be centered under the title
+        start_button_x = (dis_width // 2) - (button_width // 2)
+        start_button_y = title_y + title_height + 50  # Spacing below the title
+
+        quit_button_x = start_button_x
+        quit_button_y = start_button_y + button_height + 20  # Spacing between buttons
+        
+        # Create buttons using the draw_button function
+        start_action = draw_button("Start Game", start_button_x, start_button_y, 200, 50, black, green)
+        quit_action = draw_button("Quit Game", quit_button_x, quit_button_y, 200, 50, black, red)
+
+        #  dis.blit(instructions_surface, (dis_width // 3, dis_height // 3 + 150))
+
+        if start_action:
+            return GAME
+        if quit_action:
+            return QUIT
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+                    
+                    
+def gameOver():
+    sound_played = False 
+    if not sound_played:
+        pygame.mixer.Sound.play(game_over_sound)
+        sound_played = True
+    
+    font = pygame.font.SysFont("bahnschrift", 55)
+        
+    while True:
+        dis.fill(blue)
+
+        title_text = font.render("You lost!", True, white)
+        title_width = title_text.get_width()
+        title_height = title_text.get_height()
+
+        # Calculate the position to center the title on the screen
+        title_x = (dis_width // 2) - (title_width // 2)
+        title_y = (dis_height // 3) - (title_height // 2)
+
+        # Draw the title in the center
+        dis.blit(title_text, (title_x, title_y))
+
+        # score_text = font.render(f"Score: {Length_of_snake - 1}", True, white)
+        # score_width = score_text.get_width()
+        # score_height = score_text.get_height()
+
+        # score_x = (dis_width // 2) - (score_width // 2)
+        # score_y = (dis_height // 3) - (score_height // 2)
+
+        # dis.blit(score_text, (score_x, score_y + 50))
+
+        # Button dimensions
+        button_width = 200
+        button_height = 50
+
+        # Calculate the position for the buttons to be centered under the title
+        start_button_x = (dis_width // 2) - (button_width // 2)
+        start_button_y = title_y + title_height + 50  # Spacing below the title
+
+        menu_button_x = start_button_x
+        menu_button_y = start_button_y + button_height + 20  # Spacing between buttons
+        start_button_x, start_button_y,
+        # Create buttons using the draw_button function
+        start_action = draw_button("Start Game", start_button_x, start_button_y, 200, 50, black, green)
+        menu_action = draw_button("Menu", menu_button_x, menu_button_y, 200, 50, black, blue)
+
+
+        print("Fix this---------------------------------")
+        # message("Press Q-Quit or C-Play Again", red)
+        Score(Length_of_snake - 1)
+        pygame.display.update()
+
+        if start_action:
+            return GAME
+        if menu_action:
+            return MENU
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            # if event.type == pygame.KEYDOWN:
+            #     if event.key == pygame.K_q:
+            #         return QUIT
+            #     if event.key == pygame.K_c:
+            #         return GAME
+
+
 def gameLoop():
+    
+    MENU = "menu"
+    GAME = "game"
+    GAME_OVER = "game_over"
+    QUIT = "quit"
+    state = MENU
+
+    while True:
+        if state == MENU:
+            print("Menu")
+            state = menuLoop()
+        elif state == GAME:
+            state = run_game()
+            print("Game")
+        elif state == GAME_OVER:
+            state = gameOver()
+            print("game_over")
+        elif state == QUIT:
+            print("Quit Game")
+            pygame.quit()
+            quit()
+
+
+def run_game():
     game_over = False
     game_close = False
     high_Score = False
+
+    global Length_of_snake
 
     x1 = dis_width/2
     y1 = dis_height/2
 
     x1_change = 0
     y1_change = 0
-
-    snake_List = []
-    Length_of_snake = 1
 
     foodx = round(random.randrange(0, dis_width - snake_block) / snake_block) * snake_block
     foody = round(random.randrange(0, dis_height - snake_block) / snake_block) * snake_block
@@ -163,7 +341,7 @@ def gameLoop():
 
 
     while not game_over:
-        sound_played = False 
+        
 
         while game_close == True and high_Score == True:
             dis.fill(blue)
@@ -184,22 +362,7 @@ def gameLoop():
             # print("High Score")
 
         while game_close == True and high_Score == False:
-            if not sound_played:
-                pygame.mixer.Sound.play(game_over_sound)
-                sound_played = True
-            
-            dis.fill(blue)
-            message("Press Q-Quit or C-Play Again", red)
-            Score(Length_of_snake -1)
-            pygame.display.update()
-
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
-                        game_over = True
-                        game_close = False
-                    if event.key == pygame.K_c:
-                        gameLoop()
+            return GAME_OVER
 
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -266,7 +429,7 @@ def gameLoop():
     pygame.quit()
     quit()
 
-if not os.path.isfile("./Database.db"):
+    if not os.path.isfile("./Database.db"):
             database = "Database.db"
             conn = sqlite3.connect(database)
             create_tables(conn)
